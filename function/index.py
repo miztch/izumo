@@ -8,6 +8,7 @@ logger.setLevel(logging.INFO)
 ec2 = boto3.client('ec2')
 rds = boto3.client('rds')
 autoscaling = boto3.client('autoscaling')
+ecs = boto3.client('ecs')
 
 
 def stop_ec2():
@@ -69,11 +70,58 @@ def update_autoscaling_group():
         logger.info("No active Autoscaling groups found.")
 
 
+def stop_ecs_task():
+    # do not consider protected task
+    # https://aws.amazon.com/jp/blogs/news/announcing-amazon-ecs-task-scale-in-protection/
+    cluster_arns = ecs.list_clusters()['clusterArns']
+    cluster_names = [arn.split("/")[1] for arn in cluster_arns]
+
+    if len(cluster_names) > 0:
+        for cluster in cluster_names:
+            # find ECS Services and update to terminate Tasks
+            services = ecs.list_services(cluster=cluster)['serviceArns']
+            service_names = [arn.split("/")[2] for arn in services]
+
+            if len(service_names) > 0:
+                logger.info("Active ECS services: {}. cluster: {}".format(
+                    str(service_names), cluster))
+                # update ECS Services to stop tasks
+                for service in service_names:
+                    ecs.update_service(
+                        cluster=cluster,
+                        service=service,
+                        desiredCount=0
+                    )
+            else:
+                logger.info(
+                    "No active ECS services found in cluster: {}".format(cluster))
+
+            # directly stop Tasks which is running without Services
+            tasks = ecs.list_tasks(cluster=cluster)['taskArns']
+            task_ids = [arn.split("/")[2] for arn in tasks]
+            print(task_ids)
+
+            if len(task_ids) > 0:
+                logger.info("Active ECS tasks: {}".format(str(task_ids)))
+                for task in task_ids:
+                    ecs.stop_task(
+                        cluster=cluster,
+                        task=task,
+                        reason='automatically stopped by izumo'
+                    )
+            else:
+                logger.info(
+                    "No active ECS tasks found in cluster: {}".format(cluster))
+    else:
+        logger.info("No active ECS clusters found.")
+
+
 def lambda_handler(event, context):
     try:
         stop_ec2()
         stop_rds()
         update_autoscaling_group()
+        stop_ecs_task()
 
     except Exception as e:
         logger.error(e)

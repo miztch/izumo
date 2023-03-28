@@ -6,8 +6,10 @@
 - stop all EC2 instances 
 - stop all RDS instances
 - terminate EC2 instances in all AutoScaling groups (by changing group size)
+- stop all ECS tasks
+  - If the task is assosiated with service, by changing `desiredCount` to zero
 
-This function is triggered by EventBridge Event, and affects to the resources in the region deployed.
+This function is triggered by EventBridge Event, and affects to **all the resources in the region deployed.**
 
 ## Provisioning
 

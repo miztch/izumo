@@ -9,11 +9,11 @@ Parameters:
     Default: cron(0 13 ? * MON-FRI *)
 
 Resources:
-  RollingIconFunction:
+  IzumoFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: function/
-      Description: "Stop EC2/RDS/ASG"
+      Description: "Stop EC2/RDS/ASG instances and ECS tasks"
       Handler: index.lambda_handler
       Runtime: python3.9
       Architectures:
@@ -27,6 +27,11 @@ Resources:
           Action:
           - ec2:DescribeInstances
           - ec2:StopInstances
+          - ecs:ListClusters
+          - ecs:ListServices
+          - ecs:ListTasks
+          - ecs:StopTask
+          - ecs:UpdateService
           - rds:DescribeDBInstances
           - rds:StopDBInstance
           - autoscaling:DescribeAutoScalingGroups

@@ -36,18 +36,18 @@ def stop_ec2():
 
 
 def stop_rds():
-    all_instances = rds.describe_db_instances()
+    instances = rds.describe_db_instances()['DBInstances']
 
-    if len(all_instances) > 0:
-        logger.info("Active RDS instances: {}".format(str(all_instances)))
-        for instance in all_instances['DBInstances']:
+    if len(instances) > 0:
+        logger.info("Active RDS instances: {}".format(str(instances)))
+        for instance in instances['DBInstances']:
             if instance['DBInstanceStatus'] == 'available':
                 logger.info('Stop an RDS instance:' +
                             instance['DBInstanceIdentifier'])
                 response = rds.stop_db_instance(
                     DBInstanceIdentifier=instance["DBInstanceIdentifier"])
     else:
-        logger.info("No available RDS instances found.")
+        logger.info("No active RDS instances found.")
 
 
 def update_autoscaling_group():
